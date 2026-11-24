@@ -113,9 +113,10 @@ final class LLMExampleTests: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: 1000000.0,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -128,6 +129,7 @@ final class LLMExampleTests: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: 1000000.0,
                 params: params
             )
             

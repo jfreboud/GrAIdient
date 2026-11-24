@@ -80,9 +80,26 @@ class NLPGradTests: EmbeddingSeqMSE1DCase
                 layerPrev: layer,
                 seqPositions: [Int](1...sequence),
                 nbHeads: 3,
+                theta: 10000.0,
                 params: params
             )
-        
+
+        case "RoPETheta":
+            layer = FullyConnectedSeq(
+                layerPrev: layer,
+                nbNeurons: 3 * 8,
+                activation: nil,
+                biases: false,
+                params: params
+            )
+            layer = try! RoPESeq(
+                layerPrev: layer,
+                seqPositions: [Int](1...sequence),
+                nbHeads: 3,
+                theta: 500000.0,
+                params: params
+            )
+
         case "QueryCausal1":
             let otherLayer: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
@@ -249,7 +266,20 @@ class NLPGradTests: EmbeddingSeqMSE1DCase
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    func testRoPEThetaCPU() throws
+    {
+        GrAI.Opti.CPU = true
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
+    func testRoPEThetaGPU() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     func testQueryCausal1CPU() throws
     {
         GrAI.Opti.CPU = true
@@ -366,9 +396,26 @@ class NLPFlowTests: EmbeddingSeqMSE1DCase
                 layerPrev: layer,
                 seqPositions: [Int](1...sequence),
                 nbHeads: 3,
+                theta: 10000.0,
                 params: params
             )
-            
+
+        case "RoPETheta":
+            layer = FullyConnectedSeq(
+                layerPrev: layer,
+                nbNeurons: 3 * 8,
+                activation: nil,
+                biases: false,
+                params: params
+            )
+            layer = try! RoPESeq(
+                layerPrev: layer,
+                seqPositions: [Int](1...sequence),
+                nbHeads: 3,
+                theta: 500000.0,
+                params: params
+            )
+
         case "QueryCausal1":
             let otherLayer: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
@@ -507,7 +554,13 @@ class NLPFlowTests: EmbeddingSeqMSE1DCase
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
@@ -583,7 +636,13 @@ class NLPFlowPrecisionTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer, diffThreshold: 0.002)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer, diffThreshold: 0.002)
+    }
+
     override func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
@@ -877,7 +936,13 @@ class NLPFlowResetTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     override func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
@@ -961,7 +1026,13 @@ class NLPFlowReverseTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     override func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
@@ -1128,7 +1199,13 @@ class NLPInferenceTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     override func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
@@ -1205,25 +1282,31 @@ class NLPLoadTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     override func testQueryCausal1() throws
     {
         let trainer = _buildTrainer("QueryCausal1")
         run(trainer)
     }
-    
+
     override func testQueryCausal2() throws
     {
         let trainer = _buildTrainer("QueryCausal2")
         run(trainer)
     }
-    
+
     override func testValueCausal1() throws
     {
         let trainer = _buildTrainer("ValueCausal1")
         run(trainer)
     }
-    
+
     override func testValueCausal2() throws
     {
         let trainer = _buildTrainer("ValueCausal2")
@@ -1282,7 +1365,13 @@ class NLPTransformTests: NLPFlowTests
         let trainer = _buildTrainer("RoPE")
         run(trainer)
     }
-    
+
+    override func testRoPETheta() throws
+    {
+        let trainer = _buildTrainer("RoPETheta")
+        run(trainer)
+    }
+
     override func testQueryCausal1() throws
     {
         throw XCTSkip("Skipping this test because of layer structure.")
@@ -1410,9 +1499,10 @@ class NLPGenerateTests: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: 10000.0,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -1424,6 +1514,7 @@ class NLPGenerateTests: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: 10000.0,
                 params: params
             )
             

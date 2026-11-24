@@ -71,6 +71,7 @@ final class LLMExample: XCTestCase
     ///     - vocabularySize: Vocabulary size.
     ///     - addUnitOffset: Whether to add unit offset or not in RMSNorm.
     ///     - hiddentActivation: Activation function.
+    ///     - theta: Base used to compute the RoPE rotation angles.
     /// - Returns: (The model built, The list of PyTorch keys for each layer that contains weights).
     ///
     func _buildModel(
@@ -83,7 +84,8 @@ final class LLMExample: XCTestCase
         nbHeadsKV: Int,
         vocabularySize: Int,
         addUnitOffset: Bool,
-        hiddenActivation: String) -> (Model, [String])
+        hiddenActivation: String,
+        theta: Double) -> (Model, [String])
     {
         let context = ModelContext(name: "LLM", curID: 0)
         let params = GrAI.Model.Params(context: context)
@@ -120,9 +122,10 @@ final class LLMExample: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: theta,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -135,6 +138,7 @@ final class LLMExample: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: theta,
                 params: params
             )
             
@@ -313,9 +317,10 @@ final class LLMExample: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: 10000.0,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -328,6 +333,7 @@ final class LLMExample: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: 10000.0,
                 params: params
             )
             
@@ -862,9 +868,10 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 1000000.0
         )
-        
+
         // Load pre trained weights.
         _loadMistralWeights(
             model: model,
@@ -932,9 +939,10 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 10000.0
         )
-        
+
         // Load pre trained weights.
         _loadLlamaWeights(
             model: model,
@@ -1003,9 +1011,10 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 500000.0
         )
-        
+
         // Load pre trained weights.
         _loadLlamaWeights(
             model: model,

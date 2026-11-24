@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+✨ **layer_seq:** RoPE `theta` + fix `theta` for Llama 3 & Mistral-7B-Instruct-v0.3 ([#1](https://github.com/jfreboud/GrAIdient/pulls/1))
+
 ## 0.4.0 (2024-09-01)
 
 ### Features 

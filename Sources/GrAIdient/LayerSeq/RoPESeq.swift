@@ -16,7 +16,10 @@ public class RoPESeq: LayerSeq
 {
     /// Number of heads (groups) of neurons.
     let _nbHeads: Int
-    
+
+    /// Base used to compute the rotation angles (RoPE `theta`).
+    let _theta: Double
+
     /// List of positions to encode in the sequential axis.
     var _seqPositions: [Int]
     /// Whether positions in the sequential axis have just been set or not.
@@ -40,9 +43,10 @@ public class RoPESeq: LayerSeq
     private enum Keys: String, CodingKey
     {
         case nbHeads
+        case theta
         case seqPositions
     }
-    
+
     ///
     /// Create a layer with a sequential shape neural structure.
     ///
@@ -50,11 +54,13 @@ public class RoPESeq: LayerSeq
     ///     - layerPrev: Previous layer that has been queued to the model.
     ///     - seqPositions: List of positions to encode in the sequential axis.
     ///     - nbHeads: Number of heads (groups) of neurons.
+    ///     - theta: Base used to compute the rotation angles (RoPE `theta`).
     ///     - params: Contextual parameters linking to the model.
     ///
     public init(layerPrev: LayerSeq,
                 seqPositions: [Int],
                 nbHeads: Int,
+                theta: Double,
                 params: GrAI.Model.Params) throws
     {
         let nbNeurons = layerPrev.nbNeurons
@@ -74,6 +80,7 @@ public class RoPESeq: LayerSeq
         }
         
         self._nbHeads = nbHeads
+        self._theta = theta
         self._seqPositions = seqPositions
         self._dirtySeqPositions = true
         
@@ -96,6 +103,9 @@ public class RoPESeq: LayerSeq
         let values = try decoder.container(keyedBy: Keys.self)
         _seqPositions = try values.decode([Int].self, forKey: Keys.seqPositions)
         _nbHeads = try values.decode(Int.self, forKey: Keys.nbHeads)
+        _theta = try values.decodeIfPresent(
+            Double.self, forKey: Keys.theta
+        ) ?? 10000.0
         self._dirtySeqPositions = true
         try super.init(from: decoder)
     }
@@ -116,6 +126,7 @@ public class RoPESeq: LayerSeq
         var container = encoder.container(keyedBy: Keys.self)
         try container.encode(seqPositions, forKey: Keys.seqPositions)
         try container.encode(_nbHeads, forKey: Keys.nbHeads)
+        try container.encode(_theta, forKey: Keys.theta)
         try super.encode(to: encoder)
     }
     
@@ -145,6 +156,7 @@ public class RoPESeq: LayerSeq
             layerPrev: layerPrev,
             seqPositions: seqPositions,
             nbHeads: _nbHeads,
+            theta: _theta,
             params: params
         )
         return layer
@@ -211,7 +223,8 @@ public class RoPESeq: LayerSeq
             let pNbHeads: [UInt32] = [UInt32(_nbHeads)]
             let pNbNeurons: [UInt32] = [UInt32(nbNeurons)]
             let pSequence: [UInt32] = [UInt32(sequence)]
-            
+            let pTheta: [Float] = [Float(_theta)]
+
             let command = MetalKernel.get.createCommand(
                 "createRoPESeqMatrix", deviceID: deviceID
             )
@@ -219,7 +232,8 @@ public class RoPESeq: LayerSeq
             command.setBytes(pNbHeads, atIndex: 1)
             command.setBytes(pNbNeurons, atIndex: 2)
             command.setBytes(pSequence, atIndex: 3)
-            command.setBuffer(_rotationMatrix.metal, atIndex: 4)
+            command.setBytes(pTheta, atIndex: 4)
+            command.setBuffer(_rotationMatrix.metal, atIndex: 5)
             
             command.dispatchThreads(
                 width: nbBlocks,
@@ -266,7 +280,7 @@ public class RoPESeq: LayerSeq
                     let offset = 2 * block + head * size
                     
                     let theta = pow(
-                        10000.0,
+                        _theta,
                         -2.0 * Double(block) / Double(size)
                     )
                     let mTheta = Double(position) * theta
@@ -323,7 +337,7 @@ public class RoPESeq: LayerSeq
                     let offset = 2 * block + head * size
                     
                     let theta = pow(
-                        10000.0,
+                        _theta,
                         -2.0 * Double(block) / Double(size)
                     )
                     let mTheta = Double(position) * theta
@@ -400,7 +414,7 @@ public class RoPESeq: LayerSeq
                     let offset = 2 * block + head * size
                     
                     let theta = pow(
-                        10000.0,
+                        _theta,
                         -2.0 * Double(block) / Double(size)
                     )
                     let mTheta = Double(position) * theta
