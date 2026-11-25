@@ -13,26 +13,27 @@ kernel void createRoPESeqMatrixHalf(
     constant uint & nbHeads,
     constant uint & nbNeurons,
     constant uint & sequence,
+    constant float & theta,
     device half * rotationMatrix,
     uint2 id [[ thread_position_in_grid ]])
 {
     uint size = nbNeurons / nbHeads;
     uint nbBlocks = size / 2;
-    
+
     uint block = id[0];
     uint seq = id[1];
-    
+
     if (block >= nbBlocks || seq >= sequence)
     {
         return ;
     }
-    
+
     float position = (float)seqPositions[seq];
-    float theta = pow(
-        10000.0,
+    float thetaBlock = pow(
+        theta,
         -2.0 * (float)block / (float)size
     );
-    float mTheta = position * theta;
+    float mTheta = position * thetaBlock;
     float cosVal = cos(mTheta);
     float sinVal = sin(mTheta);
     

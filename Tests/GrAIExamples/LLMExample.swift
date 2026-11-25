@@ -12,18 +12,14 @@ import GrAIdient
 /// Run generation from prompt.
 final class LLMExample: XCTestCase
 {
-    /// Model path on the disk.
-    let _modelPathMistral = "/TO/UPDATE/mistral-7B-Instruct-v0.3/"
-    let _modelPathLlama2 = "/TO/UPDATE/llama-2-7b-chat/"
-    let _modelPathLlama3 = "/TO/UPDATE/Meta-Llama-3-8B-Instruct/"
-    let _modelPathGemma2 = "/TO/UPDATE/Gemma-2-2b-it/"
-    
     /// Prompt.
     let _prompt = "What is the meaning of life?"
-    
-    /// Initialize test.
-    override func setUp()
+
+    /// Initialize test, skipped when the weights directory is not set.
+    override func setUpWithError() throws
     {
+        _ = try weightsRoot()
+
         setPythonLib()
         _ = MetalKernel.get
         
@@ -71,6 +67,7 @@ final class LLMExample: XCTestCase
     ///     - vocabularySize: Vocabulary size.
     ///     - addUnitOffset: Whether to add unit offset or not in RMSNorm.
     ///     - hiddentActivation: Activation function.
+    ///     - theta: Base used to compute the RoPE rotation angles.
     /// - Returns: (The model built, The list of PyTorch keys for each layer that contains weights).
     ///
     func _buildModel(
@@ -83,7 +80,8 @@ final class LLMExample: XCTestCase
         nbHeadsKV: Int,
         vocabularySize: Int,
         addUnitOffset: Bool,
-        hiddenActivation: String) -> (Model, [String])
+        hiddenActivation: String,
+        theta: Double) -> (Model, [String])
     {
         let context = ModelContext(name: "LLM", curID: 0)
         let params = GrAI.Model.Params(context: context)
@@ -120,9 +118,10 @@ final class LLMExample: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: theta,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -135,6 +134,7 @@ final class LLMExample: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: theta,
                 params: params
             )
             
@@ -313,9 +313,10 @@ final class LLMExample: XCTestCase
                 layerPrev: query,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsQuery,
+                theta: 10000.0,
                 params: params
             )
-            
+
             var key: LayerSeq = FullyConnectedSeq(
                 layerPrev: layer,
                 nbNeurons: nbHeadsKV * headDim,
@@ -328,6 +329,7 @@ final class LLMExample: XCTestCase
                 layerPrev: key,
                 seqPositions: [Int](1...sequence),
                 nbHeads: nbHeadsKV,
+                theta: 10000.0,
                 params: params
             )
             
@@ -814,8 +816,9 @@ final class LLMExample: XCTestCase
     }
     
     /// Generate text from prompt with Mistral 7B Instruct.
-    func _testGenerateMistral() throws
+    func testGenerateMistral() throws
     {
+        let modelPath = try modelWeightsPath(model: "mistral-7B-Instruct-v0.3")
         let prompt = _prompt
         
         let nbBlocks = 32
@@ -829,7 +832,7 @@ final class LLMExample: XCTestCase
         
         // Load python objects.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_mistral_tokenizer(_modelPathMistral)
+        let tokenizer = pythonLib.load_mistral_tokenizer(modelPath)
         
         // Create encoder.
         let encoder = {
@@ -862,14 +865,15 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 1000000.0
         )
-        
+
         // Load pre trained weights.
         _loadMistralWeights(
             model: model,
             keys: keys,
-            weightsPath: _modelPathMistral
+            weightsPath: modelPath
         )
         
         // Generate.
@@ -884,8 +888,9 @@ final class LLMExample: XCTestCase
     }
     
     /// Generate text from prompt with Metal Llama 2 7B Chat.
-    func _testGenerateLlama2() throws
+    func testGenerateLlama2() throws
     {
+        let modelPath = try modelWeightsPath(model: "llama-2-7b-chat")
         let prompt = "How do you do?"
         
         let nbBlocks = 32
@@ -899,7 +904,7 @@ final class LLMExample: XCTestCase
         
         // Load python objects.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_llama2_tokenizer(_modelPathLlama2)
+        let tokenizer = pythonLib.load_llama2_tokenizer(modelPath)
         
         // Create encoder.
         let encoder = {
@@ -932,14 +937,15 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 10000.0
         )
-        
+
         // Load pre trained weights.
         _loadLlamaWeights(
             model: model,
             keys: keys,
-            weightsPath: _modelPathLlama2
+            weightsPath: modelPath
         )
         
         // Generate.
@@ -954,8 +960,9 @@ final class LLMExample: XCTestCase
     }
     
     /// Generate text from prompt with Metal Llama 3 8B Instruct.
-    func _testGenerateLlama3() throws
+    func testGenerateLlama3() throws
     {
+        let modelPath = try modelWeightsPath(model: "Meta-Llama-3-8B-Instruct")
         let prompt = _prompt
         
         let nbBlocks = 32
@@ -969,8 +976,8 @@ final class LLMExample: XCTestCase
         
         // Load python objects.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_llama3_tokenizer(_modelPathLlama3)
-        let formatter = pythonLib.load_llama3_formatter(_modelPathLlama3)
+        let tokenizer = pythonLib.load_llama3_tokenizer(modelPath)
+        let formatter = pythonLib.load_llama3_formatter(modelPath)
         
         // Create encoder.
         let encoder = {
@@ -1003,14 +1010,15 @@ final class LLMExample: XCTestCase
             nbHeadsKV: nbHeadsKV,
             vocabularySize: vocabularySize,
             addUnitOffset: false,
-            hiddenActivation: SiLU.str
+            hiddenActivation: SiLU.str,
+            theta: 500000.0
         )
-        
+
         // Load pre trained weights.
         _loadLlamaWeights(
             model: model,
             keys: keys,
-            weightsPath: _modelPathLlama3
+            weightsPath: modelPath
         )
         
         // Generate.
@@ -1025,8 +1033,9 @@ final class LLMExample: XCTestCase
     }
     
     /// Generate text from prompt with Gemma2 2B Instruct.
-    func _testGenerateGemma2() throws
+    func testGenerateGemma2() throws
     {
+        let modelPath = try modelWeightsPath(model: "gemma-2-2b-it")
         let prompt = _prompt
         
         let nbBlocks = 26
@@ -1040,7 +1049,7 @@ final class LLMExample: XCTestCase
         
         // Load python objects.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_gemma2_tokenizer(_modelPathGemma2)
+        let tokenizer = pythonLib.load_gemma2_tokenizer(modelPath)
         
         // Create encoder.
         let encoder = {
@@ -1080,7 +1089,7 @@ final class LLMExample: XCTestCase
         _loadGemmaWeights(
             model: model,
             keys: keys,
-            weightsPath: _modelPathGemma2
+            weightsPath: modelPath
         )
         
         // Generate.
