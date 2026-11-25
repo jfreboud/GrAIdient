@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
-✨ feat(layer_seq)!: make RoPE theta configurable, fix Llama 3 & Mistral [#1](https://github.com/jfreboud/GrAIdient/pulls/1)
+✨ feat(layer_seq)!: make RoPE theta configurable, fix Llama 3 & Mistral [#1](https://github.com/jfreboud/GrAIdient/pull/1)
 
 ## 0.4.0 (2024-09-01)
 

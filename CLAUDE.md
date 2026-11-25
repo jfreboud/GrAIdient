@@ -34,4 +34,4 @@ Swift + Metal deep-learning framework (training *and* inference) for Apple Silic
 - `RoPESeq` takes a **required** `theta` (no default): every call site, including model-specific ones in `LLMExample`, must state it explicitly.
 - Where code goes: a generic differentiable primitive belongs in this repo, with its gradient tests; interpretability logic belongs in GrAIl.
 - This is a fork: keep diffs vs. upstream reviewable and avoid gratuitous divergence.
-- `CHANGELOG.md` is maintained — add entries under `[unreleased]` with the emoji style already in use.
+- `CHANGELOG.md` is maintained: under `[unreleased]`, one line per PR, newest first, made of the PR title verbatim followed by a link to the PR (`<title> [#N](https://github.com/jfreboud/GrAIdient/pull/N)\`; every line ends with `\` except the last).
