@@ -12,15 +12,14 @@ import GrAIdient
 /// Run generation from prompt.
 final class LLMExampleTests: XCTestCase
 {
-    /// Model path on the disk.
-    let _modelPath = "/TO/UPDATE/mistral-7B-Instruct-v0.3/"
-    
     /// Prompt.
     let _prompt = "How do you do?"
-    
-    /// Initialize test.
-    override func setUp()
+
+    /// Initialize test, skipped when the weights directory is not set.
+    override func setUpWithError() throws
     {
+        _ = try weightsRoot()
+
         setPythonLib()
         _ = MetalKernel.get
         
@@ -323,8 +322,9 @@ final class LLMExampleTests: XCTestCase
     }
     
     /// Predict text from prompt.
-    func _testPredict1() throws
+    func testPredict1() throws
     {
+        let modelPath = try modelWeightsPath(model: "mistral-7B-Instruct-v0.3")
         let nbBlocks = 1
         let hiddenDim = 4096
         let headDim = 128
@@ -335,7 +335,7 @@ final class LLMExampleTests: XCTestCase
         
         // Load tokenizer.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_mistral_tokenizer(_modelPath)
+        let tokenizer = pythonLib.load_mistral_tokenizer(modelPath)
         
         // Encode prompt.
         let prompt = [Int](pythonLib.encode_mistral(
@@ -346,7 +346,7 @@ final class LLMExampleTests: XCTestCase
         // Compute reference.
         let arrayRef = [Float](numpy: pythonLib.predict_mistral(
             _prompt,
-            _modelPath,
+            modelPath,
             1
         ))!
         
@@ -363,7 +363,7 @@ final class LLMExampleTests: XCTestCase
         )
         
         // Load pre trained weights.
-        _loadMistralWeights(model: model, keys: keys, weightsPath: _modelPath)
+        _loadMistralWeights(model: model, keys: keys, weightsPath: modelPath)
         
         // Initialize for inference.
         model.initKernel(phase: .Inference)
@@ -379,28 +379,19 @@ final class LLMExampleTests: XCTestCase
         // Get result.
         let arrayOut = (model.layers.last as! LayerSeq).outs.download()
         
-        // Compare difference.
+        // Compare difference: 1% relative tolerance, with a small absolute
+        // floor for the logits close to zero where a relative error is
+        // meaningless.
         for (elemOut, elemRef) in zip(arrayOut, arrayRef)
         {
-            if elemRef == 0.0
-            {
-                XCTAssert(elemOut == 0.0)
-            }
-            else
-            {
-                let diffPercent = abs(elemOut - elemRef) / abs(elemRef) * 100.0
-                if diffPercent > 1
-                {
-                    print(diffPercent)
-                }
-                XCTAssert(diffPercent < 1)
-            }
+            XCTAssert(abs(elemOut - elemRef) <= 1e-4 + 0.01 * abs(elemRef))
         }
     }
     
     /// Predict text from prompt.
-    func _testPredict32() throws
+    func testPredict32() throws
     {
+        let modelPath = try modelWeightsPath(model: "mistral-7B-Instruct-v0.3")
         let nbBlocks = 32
         let hiddenDim = 4096
         let headDim = 128
@@ -411,7 +402,7 @@ final class LLMExampleTests: XCTestCase
         
         // Load tokenizer.
         let pythonLib = Python.import("python_lib")
-        let tokenizer = pythonLib.load_mistral_tokenizer(_modelPath)
+        let tokenizer = pythonLib.load_mistral_tokenizer(modelPath)
         
         // Encode prompt.
         let prompt = [Int](pythonLib.encode_mistral(
@@ -432,7 +423,7 @@ final class LLMExampleTests: XCTestCase
         )
         
         // Load pre trained weights.
-        _loadMistralWeights(model: model, keys: keys, weightsPath: _modelPath)
+        _loadMistralWeights(model: model, keys: keys, weightsPath: modelPath)
         
         // Initialize for inference.
         model.initKernel(phase: .Inference)

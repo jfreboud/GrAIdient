@@ -54,7 +54,7 @@ def generate(
         n_kv_heads=8,
         norm_eps=1e-5,
         vocab_size=128256,
-        rope_theta=10000
+        rope_theta=500000
     )
 
     model = Transformer(model_args)

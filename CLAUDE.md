@@ -23,7 +23,7 @@ Swift + Metal deep-learning framework (training *and* inference) for Apple Silic
 - swift-tools 5.7, macOS 13+, Swift 5 language mode. Tests use **XCTest** — follow that convention here (Swift Testing is the convention in GrAIl only).
 - Command-line builds need the full Xcode toolchain: `xcode-select -p` must point at `/Applications/Xcode.app/Contents/Developer` (CommandLineTools lacks some libraries). If it does not, prefix commands with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 - Fast check: `swift build`. Unit tests: `swift test --filter GrAITests`.
-- `GrAITorchTests` and `GrAIExamples` require a configured Python env and local model weights — do not run them casually.
+- `GrAITorchTests` and `GrAIExamples` require a configured Python env (`graiexamples`, with `python_lib` installed in editable mode from `Tests/GrAIExamples/Base`) and local model weights. The LLM examples read the `GRAI_WEIGHTS_DIR` environment variable, one folder per model (`mistral-7B-Instruct-v0.3`, `Meta-Llama-3-8B-Instruct`, `llama-2-7b-chat`, `gemma-2-2b-it`), and skip when it or the model is missing. A run holds 38–42 GB in memory: do not run them casually. Example: `GRAI_WEIGHTS_DIR=/path/to/weights swift test -c release --filter GrAIExamples.LLMExampleTests/testPredict1`.
 - New layers require gradient tests (reference-value comparison, < 1% relative tolerance); follow existing patterns in `Tests/GrAITests`.
 
 ## Conventions
